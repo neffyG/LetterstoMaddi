@@ -1,0 +1,796 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Dancing+Script:wght@400;700&display=swap');
+
+:root {
+    /* Ghibli Greens */
+    --ghibli-forest-dark: #3a5c4e;
+    --ghibli-forest-medium: #5b8e7c;
+    --ghibli-forest-light: #8cb19e;
+    --ghibli-misty-green: #c0d8b6; /* Soft pastel green */
+    --ghibli-leaf-bud: #a6b99b;   /* Slightly deeper pastel */
+
+    /* Complementary Hues (from original palette but adjusted) */
+    --ghibli-sky-blue: #a3c5e0; /* Misty blue */
+    --ghibli-parchment: #f1dbb6; /* Warm, aged paper */
+    --ghibli-rose-petal: #f0a3b0; /* Soft, muted pink */
+    --ghibli-terracotta: #e3bba1; /* Earthy orange/brown */
+    --ghibli-cream: #fffaf0; /* Off-white for pages */
+    --ghibli-text-dark: #5a3e36; /* Dark brown for text */
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(to bottom right, var(--ghibli-sky-blue), var(--ghibli-parchment));
+    font-family: 'Quicksand', sans-serif;
+    position: relative;
+    overflow: hidden;
+    color: var(--ghibli-text-dark);
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.1) 0%, transparent 40%),
+                radial-gradient(circle at 20% 80%, rgba(255,255,255,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.pin-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(240, 255, 240, 0.98);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px) saturate(1.2);
+    animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.pin-message {
+    font-family: 'Dancing Script', cursive;
+    color: var(--ghibli-forest-dark);
+    font-size: 32px;
+    margin-bottom: 40px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    letter-spacing: 1px;
+}
+
+.pin-error {
+    color: var(--ghibli-rose-petal);
+    font-size: 20px;
+    margin-top: 20px;
+    text-align: center;
+    display: none;
+    animation: fadeInShake 0.6s ease-in-out;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+}
+
+.pin-dots {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.pin-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background-color: var(--ghibli-misty-green);
+    border: 3px solid var(--ghibli-forest-medium);
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+}
+
+.pin-dot.filled {
+    background-color: var(--ghibli-forest-dark);
+    border-color: var(--ghibli-forest-dark);
+    box-shadow: 0 0 8px var(--ghibli-forest-light);
+}
+
+.pin-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 80px);
+    gap: 20px;
+    padding: 30px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 25px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    border: 2px solid var(--ghibli-leaf-bud);
+}
+
+.pin-pad button {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+    font-weight: 700;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--ghibli-leaf-bud);
+    color: var(--ghibli-forest-dark);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: transform 0.15s ease-in-out, background-color 0.25s ease, box-shadow 0.25s ease;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.3);
+}
+
+.pin-pad button:hover {
+    background-color: var(--ghibli-forest-light);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+}
+
+.pin-pad button:active {
+    transform: translateY(0);
+    background-color: var(--ghibli-forest-medium);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.left-menu {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 5;
+}
+
+.menu-icon {
+    background-color: var(--ghibli-misty-green);
+    border: 3px solid var(--ghibli-forest-medium);
+    border-radius: 15px;
+    padding: 12px 18px;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.2s ease, box-shadow 0.2s ease;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ghibli-forest-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
+}
+
+.menu-icon:hover {
+    transform: scale(1.08) rotate(-2deg);
+    background-color: var(--ghibli-leaf-bud);
+    box-shadow: 0 5px 12px rgba(0,0,0,0.35);
+}
+
+/* Blowhorn Icon Styles */
+.blowhorn-icon {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background-color: var(--ghibli-rose-petal); /* Pink to stand out */
+    border: 3px solid var(--ghibli-terracotta);
+    border-radius: 50%; /* Make it round */
+    width: 60px; /* Size of the icon */
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32px; /* Emoji size */
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.2s ease, box-shadow 0.2s ease;
+    z-index: 5; /* Ensure it's above other content */
+}
+
+.blowhorn-icon:hover {
+    transform: scale(1.15) rotate(5deg);
+    background-color: #ff8cb4; /* Lighter pink on hover */
+    box-shadow: 0 6px 15px rgba(0,0,0,0.35);
+    animation: bounce 0.8s infinite alternate; /* Subtle bounce */
+}
+
+@keyframes bounce {
+    from { transform: translateY(0) scale(1.15) rotate(5deg); }
+    to { transform: translateY(-5px) scale(1.15) rotate(5deg); }
+}
+
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    flex-direction: column;
+    position: relative;
+    padding-bottom: 50px;
+}
+
+.envelope {
+    position: relative;
+    width: 350px;
+    height: 240px;
+    background: #fff8eb;
+    border: 4px solid var(--ghibli-rose-petal);
+    border-radius: 30px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transform: rotate(-5deg);
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    cursor: pointer;
+}
+
+.envelope:hover {
+    transform: rotate(0deg) scale(1.03);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+}
+
+.envelope::before, .envelope::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #ffebf0;
+    z-index: 1;
+}
+
+.envelope::before {
+    clip-path: polygon(0 0, 50% 50%, 100% 0);
+    top: 0;
+    left: 0;
+}
+
+.envelope::after {
+    clip-path: polygon(0 100%, 50% 50%, 100% 100%);
+    bottom: 0;
+    left: 0;
+}
+
+.heart-seal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(10deg);
+    font-size: 60px;
+    color: #ff8cb4;
+    cursor: pointer;
+    z-index: 2;
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55), color 0.2s ease;
+    filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.2));
+}
+
+.heart-seal:hover {
+    transform: translate(-50%, -50%) scale(1.25) rotate(0deg);
+    color: #ff57a0;
+    animation: heartBeat 0.8s infinite alternate;
+}
+
+@keyframes heartBeat {
+    from { transform: translate(-50%, -50%) scale(1.25) rotate(0deg); }
+    to { transform: translate(-50%, -50%) scale(1.3) rotate(0deg); }
+}
+
+.click-text {
+    margin-top: 25px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ghibli-forest-dark);
+    text-align: center;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.7);
+}
+
+/* MODIFIED FOR CENTERING */
+.scroll-overlay {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    height: 90vh;
+    max-width: 1000px;
+    max-height: 700px;
+    background: var(--ghibli-cream);
+    font-family: 'Dancing Script', cursive;
+    border: 8px double var(--ghibli-leaf-bud);
+    border-radius: 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 10;
+    padding: 40px;
+    overflow-y: auto;
+    animation: fadeInScale 0.8s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.scroll-overlay .back-arrow {
+    position: absolute;
+    top: 20px;
+    left: 25px;
+    font-size: 36px;
+    cursor: pointer;
+    color: var(--ghibli-forest-dark);
+    transition: transform 0.2s ease-out, color 0.2s ease;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
+}
+
+.scroll-overlay .back-arrow:hover {
+    transform: translateX(-8px);
+    color: var(--ghibli-forest-medium);
+}
+
+.scroll-content {
+    margin-top: 50px;
+    font-size: 22px;
+    line-height: 1.9;
+    color: var(--ghibli-text-dark);
+    text-shadow: 0.8px 0.8px var(--ghibli-cream);
+    flex-grow: 1;
+    padding-bottom: 20px;
+}
+
+#timerDisplay {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 2.5em;
+    font-weight: 700;
+    color: var(--ghibli-forest-dark);
+    text-align: center;
+    margin-top: 30px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    letter-spacing: 1px;
+}
+
+/* MODIFIED FOR CENTERING */
+.notebook-page-overlay {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    height: 90vh;
+    max-width: 1200px;
+    max-height: 800px;
+    background: var(--ghibli-cream);
+    font-family: 'Quicksand', sans-serif;
+    border: 8px double var(--ghibli-forest-medium);
+    border-radius: 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 10;
+    padding: 40px 20px 20px 20px;
+    animation: fadeInScale 0.8s ease-out;
+    display: flex;
+    flex-direction: column;
+    background-image: url('data:image/svg+xml,%3Csvg width=%22100%25%22 height=%22100%25%22 viewBox=%220 0 100 100%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3CfeColorMatrix type=%22matrix%22 values=%220 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 -0.5 0%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E');
+    background-size: cover;
+    background-blend-mode: multiply;
+}
+
+.notebook-page-overlay .back-arrow {
+    position: absolute;
+    top: 20px;
+    left: 25px;
+    font-size: 36px;
+    cursor: pointer;
+    color: var(--ghibli-forest-dark);
+    transition: transform 0.2s ease-out, color 0.2s ease;
+    z-index: 11;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
+}
+
+.notebook-page-overlay .back-arrow:hover {
+    transform: translateX(-8px);
+    color: var(--ghibli-forest-medium);
+}
+
+.notebook-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    padding-left: 60px;
+    gap: 12px;
+    padding-top: 15px;
+    position: relative;
+    z-index: 1;
+}
+
+.notebook-tab {
+    padding: 12px 22px;
+    background-color: var(--ghibli-parchment);
+    border: 1px solid var(--ghibli-terracotta);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--ghibli-text-dark);
+    transition: background-color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
+    box-shadow: 0 -3px 8px rgba(0,0,0,0.15);
+    letter-spacing: 0.5px;
+}
+
+.notebook-tab:hover {
+    background-color: #f7e2c9;
+    transform: translateY(-4px) rotate(-1deg);
+    box-shadow: 0 -5px 12px rgba(0,0,0,0.25);
+}
+
+.notebook-tab.active {
+    background-color: var(--ghibli-cream);
+    border-bottom: 1px solid var(--ghibli-cream);
+    transform: translateY(0);
+    box-shadow: none;
+    z-index: 2;
+    font-size: 21px;
+}
+
+.notebook-content-area {
+    flex-grow: 1;
+    background-color: var(--ghibli-cream);
+    border-top: 2px dashed var(--ghibli-leaf-bud);
+    padding: 25px;
+    overflow-y: auto;
+    font-family: 'Dancing Script', cursive;
+    font-size: 22px;
+    line-height: 1.9;
+    color: var(--ghibli-text-dark);
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.7);
+    border-radius: 0 0 20px 20px;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
+}
+
+.notebook-content-area div {
+    display: none;
+}
+
+.notebook-content-area div.active {
+    display: block;
+}
+
+/* MODIFIED FOR CENTERING */
+.music-overlay {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    height: 90vh;
+    max-width: 900px;
+    max-height: 720px;
+    background: var(--ghibli-cream);
+    font-family: 'Quicksand', sans-serif;
+    border: 8px double var(--ghibli-rose-petal); /* A lovely pink border for music */
+    border-radius: 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 10;
+    padding: 40px;
+    overflow: hidden; /* Important for centering and vinyl */
+    animation: fadeInScale 0.8s ease-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center content horizontally */
+    justify-content: center; /* Center content vertically */
+    gap: 30px; /* Space between vinyl and playlist */
+}
+
+.music-overlay .back-arrow {
+    position: absolute;
+    top: 20px;
+    left: 25px;
+    font-size: 36px;
+    cursor: pointer;
+    color: var(--ghibli-forest-dark);
+    transition: transform 0.2s ease-out, color 0.2s ease;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
+    z-index: 11; /* Ensure back arrow is clickable */
+}
+
+.music-overlay .back-arrow:hover {
+    transform: translateX(-8px);
+    color: var(--ghibli-forest-medium);
+}
+
+.vinyl-container {
+    position: relative;
+    width: 200px; /* Size of the vinyl record */
+    height: 200px;
+    background-color: #222; /* Dark color for the record */
+    border-radius: 50%;
+    border: 10px solid #111; /* Outer edge of the record */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    animation: spin 5s linear infinite; /* Vinyl spinning animation */
+    flex-shrink: 0; /* Prevent it from shrinking */
+}
+
+.vinyl-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px; /* Size of the center label */
+    height: 60px;
+    background: linear-gradient(135deg, #f0e68c, #ffd700); /* Golden yellow for the label */
+    border-radius: 50%;
+    border: 2px solid #a0522d; /* Brownish border */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Dancing Script', cursive; /* A nice font for the label */
+    font-size: 1.2em;
+    color: #8b0000; /* Dark red for text */
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+}
+
+.vinyl-hole {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 15px; /* Size of the center hole */
+    height: 15px;
+    background-color: #000;
+    border-radius: 50%;
+    border: 1px solid #333;
+    z-index: 1; /* Make sure it's above the label */
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.apple-music-embed {
+    width: 100%; /* Take full width of its container */
+    max-width: 660px; /* Max width as recommended by Apple */
+    height: 450px; /* Fixed height for the player */
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    background-color: rgba(255,255,255,0.8); /* Slight background for embeds */
+    border: 1px solid var(--ghibli-leaf-bud);
+    flex-grow: 1; /* Allow it to take up available space */
+    display: flex; /* Use flex to center the iframe if it's smaller */
+    justify-content: center;
+    align-items: center;
+    position: relative; /* For the title */
+}
+
+.music-overlay h3 {
+    font-family: 'Dancing Script', cursive;
+    font-size: 2.5em;
+    color: var(--ghibli-forest-dark);
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap; /* Prevent title from wrapping */
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--ghibli-parchment);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--ghibli-forest-light);
+    border-radius: 10px;
+    border: 3px solid var(--ghibli-parchment);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ghibli-forest-medium);
+}
+.memory-page-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: var(--ghibli-misty-green);
+  overflow-y: auto;
+  z-index: 100;
+  padding: 20px;
+  display: none;
+}
+
+.memory-album {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    padding: 20px;
+    background-color: #fefaf3;
+    border-radius: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.memory-photo {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease;
+}
+
+.memory-photo:hover {
+    transform: scale(1.05);
+}
+
+/* ======================================= */
+/* ====== RESPONSIVE DESIGN STYLES ====== */
+/* ======================================= */
+
+@media (max-width: 768px) {
+    /* Make overlays full-screen on mobile for better immersion */
+    .scroll-overlay, .notebook-page-overlay, .music-overlay {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        top: 0;
+        left: 0;
+        transform: none;
+        border-radius: 0;
+        border: none;
+        padding: 40px 15px 15px 15px;
+    }
+    
+    /* Adjust keyframe animation for full-screen overlays */
+    @keyframes fadeInScale {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Adjust back arrows for full-screen overlays */
+    .scroll-overlay .back-arrow, .notebook-page-overlay .back-arrow, .music-overlay .back-arrow {
+        top: 15px;
+        left: 15px;
+        font-size: 32px;
+    }
+    
+    /* Adjust main page elements for smaller screens */
+    .envelope {
+        width: 85vw;
+        max-width: 320px;
+        height: auto;
+        min-height: 200px;
+    }
+
+    .left-menu {
+        top: 15px;
+        left: 15px;
+        gap: 15px;
+    }
+    
+    .menu-icon {
+        padding: 10px 15px;
+        font-size: 16px;
+    }
+
+    .blowhorn-icon {
+        top: 15px;
+        right: 15px;
+        width: 50px;
+        height: 50px;
+        font-size: 28px;
+    }
+
+    /* Pin Pad */
+    .pin-message {
+        font-size: 26px;
+        margin-bottom: 30px;
+    }
+    .pin-pad {
+        grid-template-columns: repeat(3, 70px);
+        gap: 15px;
+        padding: 20px;
+    }
+    .pin-pad button {
+        width: 70px;
+        height: 70px;
+        font-size: 28px;
+    }
+
+    /* Scroll/Letter content */
+    .scroll-content {
+        margin-top: 30px;
+        font-size: 20px;
+        line-height: 1.8;
+    }
+    
+    /* Notebook */
+    .notebook-page-overlay {
+         padding-left: 5px;
+         padding-right: 5px;
+    }
+    .notebook-tabs {
+        padding-left: 50px; /* Space for the back arrow */
+        gap: 8px;
+    }
+    .notebook-tab {
+        padding: 10px 16px;
+        font-size: 14px; /* Smaller tabs */
+    }
+    .notebook-tab.active {
+        font-size: 15px;
+    }
+    .notebook-content-area {
+        font-size: 20px;
+        padding: 20px 15px;
+    }
+
+    /* Music */
+    .music-overlay {
+        justify-content: flex-start; /* Align content to the top */
+        padding-top: 80px; /* More space for title and back arrow */
+        gap: 20px;
+    }
+    .music-overlay h3 {
+        font-size: 2em;
+        top: 35px; /* Adjust title position */
+    }
+    .vinyl-container {
+        width: 150px;
+        height: 150px;
+    }
+    .apple-music-embed {
+        height: auto;
+        min-height: 280px;
+        flex-grow: 1; /* Allow it to fill space */
+    }
+
+    /* Memory Album */
+    .memory-page-overlay {
+        padding: 10px;
+    }
+    .memory-album {
+        padding: 10px;
+    }
+    .memory-photo {
+        width: calc(50% - 16px); /* 2 photos per row */
+        height: auto;
+        aspect-ratio: 1 / 1;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Further refinements for very small phone screens */
+    .memory-photo {
+        width: calc(50% - 12px); /* Still 2 per row, just adjust for smaller gap */
+    }
+    .pin-pad {
+        grid-template-columns: repeat(3, 60px);
+        gap: 12px;
+    }
+    .pin-pad button {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+    .notebook-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    .notebook-tab.active {
+        font-size: 13px;
+    }
+}

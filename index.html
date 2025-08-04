@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- In <head> -->
+<link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Enchanted Ghibli Diary</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+
+</head>
+<body>
+<div class="pin-overlay" id="pinOverlay">
+    <div class="pin-message">Welcome, little forest spirit! Enter your secret key. ✨</div>
+    <div class="pin-dots" id="pinDots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad" id="pinPad">
+        <button onclick="enterDigit('1')">1</button>
+        <button onclick="enterDigit('2')">2</button>
+        <button onclick="enterDigit('3')">3</button>
+        <button onclick="enterDigit('4')">4</button>
+        <button onclick="enterDigit('5')">5</button>
+        <button onclick="enterDigit('6')">6</button>
+        <button onclick="enterDigit('7')">7</button>
+        <button onclick="enterDigit('8')">8</button>
+        <button onclick="enterDigit('9')">9</button>
+        <button onclick="clearPin()">←</button>
+        <button onclick="enterDigit('0')">0</button>
+        <button onclick="submitPin()">✔</button>
+    </div>
+    <div class="pin-error" id="pinError">You are not Madi, f off pls 🚫</div>
+</div>
+
+<div class="left-menu">
+    <div class="menu-icon" onclick="openNotebookPage()" id="notebookIcon">
+        📓 My Journal
+    </div>
+    <div class="menu-icon" onclick="toggleAlbum()" id="albumIcon">
+        📸 Memory Album
+    </div>
+    <div class="menu-icon" onclick="openTimeSinceMet()" id="timeSinceMetIcon">
+        ⏳ Time Together
+    </div>
+    <div class="menu-icon" onclick="openMusicPlayer()" id="musicIcon">
+        🎵 Music For You
+    </div>
+</div>
+
+<div class="blowhorn-icon" onclick="pingMadi()" title="Ping Madi!">📢</div>
+
+
+<div class="notebook-entries" id="notebookEntries" style="display: none;"></div>
+<div class="album-entries" id="album-entries" style="display: none;"></div>
+<div class="notebook-page-overlay" id="memoryPageOverlay" style="display: none;">
+  <div class="back-arrow" onclick="closeMemoryPage()">← Back</div>
+  <div id="memoryAlbum" class="memory-album"></div>
+</div>
+
+
+<div class="container">
+    <div class="envelope">
+        <div class="heart-seal" onclick="openDailyLetter()">💖</div>
+    </div>
+    <div class="click-text">Tap the shimmering heart 💖 to unveil today's wisdom!</div>
+</div>
+
+<div class="scroll-overlay" id="scrollOverlay">
+    <div class="back-arrow" onclick="closeScroll()">← Back</div>
+    <div class="scroll-content" id="scrollContent"></div>
+</div>
+
+<div class="notebook-page-overlay" id="notebookPageOverlay">
+  <div class="back-arrow" onclick="closeNotebookPage()">← Back</div>
+
+  <!-- Only tabs go in here -->
+  <div class="notebook-tabs" id="notebookTabs">
+    <div class="notebook-tab" data-content="entry1">Our dates:</div>
+    <div class="notebook-tab" data-content="entry2">Last Rodeo 05/24/25</div>
+    <div class="notebook-tab" data-content="entry3">Lilo n Stitch / CFA? / Tempe 05/30/25</div>
+    <div class="notebook-tab" data-content="entry4">Round 1 / In-N-Out 06/03/25</div>
+    <div class="notebook-tab" data-content="entry5">Applebee’s / HTTYD 06/13/25</div>
+    <div class="notebook-tab" data-content="entry6">Coffee Shop 06/19</div>
+    <div class="notebook-tab" data-content="entry7">06/20 Culver’s Lunch</div>
+    <div class="notebook-tab" data-content="entry8">06/21 Confession Day</div>
+    <div class="notebook-tab" data-content="entry9">06/27 Sushi & Talk</div>
+    <div class="notebook-tab" data-content="entry10">06/28 Castle in the Sky</div>
+    <div class="notebook-tab" data-content="entry11">07/01 Soft Launch</div>
+    <div class="notebook-tab" data-content="entry12">07/04 Placement Test</div>
+    <div class="notebook-tab" data-content="entry13">07/05 Sherwin Drinks</div>
+    <div class="notebook-tab" data-content="entry14">07/13 Big Sunday</div>
+    <div class="notebook-tab" data-content="entry15">07/14 Cupcakes</div>
+    <div class="notebook-tab" data-content="entry16">07/18 Dino Drive-In</div>
+    <div class="notebook-tab" data-content="entry17">07/21 BBQ & Park</div>
+    <div class="notebook-tab" data-content="entry18">07/23 Study Day</div>
+    <div class="notebook-tab" data-content="entry19">07/24 Sick Day</div>
+    <div class="notebook-tab" data-content="entry20">07/26 Fantastic 4</div>
+    <div class="notebook-tab" data-content="entry21">07/27 Roadhouse + Parents</div>
+    <div class="notebook-tab" data-content="entry22">07/30 Website Grind</div>
+    <div class="notebook-tab" data-content="entry23">08/01 Sherwin</div>
+    <div class="notebook-tab" data-content="entry24">08/02 Full Day</div>
+    <div class="notebook-tab" data-content="entry25">08/03 Ask Delay</div>
+  </div>
+
+
+
+  <!-- Envelope animation (💖) -->
+  <div id="entryEnvelope" class="envelope" style="display: none; margin: 0 auto;">
+    <div class="heart-seal" onclick="closeEntryContent()">💖</div>
+  </div>
+
+  <!-- Entry content area -->
+  <div class="notebook-content-area" id="notebookContentArea">
+    <div id="notebook-entry1" ></div>
+        <div id="notebook-entry2"></div>
+        <div id="notebook-entry3"></div>
+        <div id="notebook-entry4"></div>
+        <div id="notebook-entry5"></div>
+        <div id="notebook-entry6"></div>
+        <div id="notebook-entry7"></div>
+        <div id="notebook-entry8"></div>
+        <div id="notebook-entry9"></div>    
+        <div id="notebook-entry10"></div>
+        <div id="notebook-entry11"></div>
+        <div id="notebook-entry12"></div>
+        <div id="notebook-entry13"></div>
+        <div id="notebook-entry14"></div>
+        <div id="notebook-entry15"></div>
+        <div id="notebook-entry16"></div>
+        <div id="notebook-entry17"></div>
+        <div id="notebook-entry18"></div>
+        <div id="notebook-entry19"></div>
+        <div id="notebook-entry20"></div>
+        <div id="notebook-entry21"></div>
+        <div id="notebook-entry22"></div>
+        <div id="notebook-entry23"></div>
+        <div id="notebook-entry24"></div>
+        <div id="notebook-entry25"></div>
+  </div>
+</div>
+
+
+
+<div class="music-overlay" id="musicOverlay">
+    <div class="back-arrow" onclick="closeMusicPlayer()">← Back</div>
+    <h3>Melodies of Our Connection 🎶</h3>
+    <div class="vinyl-container">
+        <div class="vinyl-center">
+            Madi's Mix
+        </div>
+        <div class="vinyl-hole"></div>
+    </div>
+    <div class="apple-music-embed">
+        <iframe allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" frameborder="0" height="450" style="width:100%;max-width:660px;overflow:hidden;border-radius:10px;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="https://embed.music.apple.com/us/playlist/madi/pl.u-xlyNqLluJEKRDek"></iframe>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
