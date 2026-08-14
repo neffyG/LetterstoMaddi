@@ -1,279 +1,622 @@
-// enchanted_ghibli_diary script.js
+// ============================================================
+//  Enchanted Ghibli Diary — script.js
+//  Content now lives in Supabase. If Supabase is unreachable the
+//  site quietly falls back to the built-in copy below, so it never
+//  shows Madi a blank page.
+// ============================================================
+
+/* ---------------- 1. CONNECT ---------------- */
+
+let db = null;
+try {
+  if (typeof SUPABASE_URL !== "undefined" && SUPABASE_URL.startsWith("http")) {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) {
+  console.warn("Supabase not connected, using built-in content.", e);
+}
+
+/* ---------------- 2. FALLBACK CONTENT ---------------- */
+
+const FALLBACK = {
+  settings: {
+    daily_letter:
+      "✨ Hi :) i know this is long overdue, but today is your special day my love, look around the website and enjoy it Mads its all yours!! I hope I can make the rest of this day as sepcial as you are to me!🌸 I love you Madi!",
+    met_date: "2025-06-21T22:00:00-07:00",
+    ping_number: "+16026958531",
+    ping_message: "Madi, I need you!",
+    playlist_url:
+      "https://embed.music.apple.com/us/playlist/madi/pl.u-xlyNqLluJEKRDek",
+    visitor_pin: "062125",
+  },
+  entries: [
+    {
+      id: -1,
+      label: "Our dates:",
+      body:
+        "Hey mads!!! Welcome to my journal, I know you might be wondering what it is, but this is a collection of all the memories we have made together, and I hope you enjoy it as much as I do!\n- I love you 💖",
+      position: 1,
+    },
+  ],
+  photos: [
+    "IMG_0032.jpg", "IMG_0038.jpg", "IMG_1064.jpg", "IMG_4221.jpg",
+    "IMG_4311.jpg", "IMG_4327.jpg", "IMG_4459.jpg", "IMG_4543.jpg",
+    "IMG_4571.jpg", "IMG_7905.jpg", "lp_image.jpg",
+  ].map((f, i) => ({ id: -(i + 1), url: `photo/${f}`, caption: "", position: i })),
+};
+
+/* ---------------- 3. STATE ---------------- */
+
+const state = {
+  settings: { ...FALLBACK.settings },
+  entries: [...FALLBACK.entries],
+  photos: [...FALLBACK.photos],
+  isAdmin: false,
+  editingEntryId: null,
+};
 
 let pin = "";
-const correctPin = "062125";
 const MAX_PIN_LENGTH = 6;
-const pinError = document.getElementById('pinError');
-
-const metDate = new Date("2025-06-21T22:00:00-07:00");
 let timerInterval;
 
- const allContents = {
-        daily: "✨ Hi :) i know this is long overdue, but today is your special day my love, look around the website and enjoy it Mads its all yours!! I hope I can make the rest of this day as sepcial as you are to me!🌸 I love you Madi!",
-        //daily_opened: "You've already savored today's special message, little friend! Come back tomorrow for a fresh whisper from the forest. 🌳",
-        entry1: "Hey mads!!! Welcome to my journal, I know you might be wondering what it is, but this is a collection of all the memories we have made together, and I hope you enjoy it as much as I do! \n- I love you 💖",
-        entry2: "Today was the first time I had seen her in years. I was so nervous; rustling my hands, picking at my cuticles as I waited for her. When I finally saw her, I didn’t know what to say. I had known her for years, yet at the same time, it felt like I knew nothing about her. I know she must’ve felt the same way, but we powered through. As the night went on and we finished watching The Last Rodeo, it felt just like those Sundays years ago when we worked at Sonic and talked about the most random things.I had missed that. I realized I had missed her. Not in a romantic way, but as a close friend I hadn’t seen in so long. – Neftali",
-        entry3: "Our second and much needed hangout. I felt like we still had so much to catch up on. After we watched Lilo and Stitch and yes, she cried a little too; I took her to Tempe. We walked around the campus and talked. But something was different. The way she listened to me, really listened, when I opened up about leaving the cult, about the things I’ve been through… Something in our relationship shifted that night. I don’t know exactly what it was. I just know that something changed.– Neftali",
-        entry4: "I forgot the GIFTS!!I messaged her to ask if she wanted to go shopping with me for some presents I forgot for my friend’s upcoming birthday.To my surprise, she said yes.When we arrived at the mall, I was nervous she looked really pretty in her flannel shirt, and I was trying hard to play it cool. We bought the gifts and decided to hit the Round 1 arcade. We played and had the time of our lives. Even with my messed up knee, we still played volleyball and jumped on the trampolines. Afterward, we went downstairs where I tried to win her some plushies but as luck would have it, I couldn’t. She did, though. She won me two: a Zoro plushie and a Pickle Rick. Her sense of humor and her eyes, damn, her eyes had me completely encapsulated the entire time.I think I am starting to fall for her. – Neftali",
-        entry5: "Never going to Applebee’s again in my life. It was horrible. Madi ordered some artichoke dip and yeah, it was pretty bad too (sorry Mads). Afterwards, we were both feeling so underwhelmed we decided to YOLO and go to the How to Train Your Dragon movie. We stopped by Walmart to pick up a few things, and that’s when I found out she’s a cheese girly, might be her Italian side. While we were walking through the aisles, my heart was pounding. I knew I liked her, but I couldn’t tell her. At the drive-ins, we didn’t even watch the movie, we just talked and talked. Those were the fastest two hours of my life. -- Neftali",
-        entry6: "I really like this girl, I am going to go to her coffee shop to see her. wish me luck furture self!-------- It was awsome, OG juan's truck was messed up though had to get a tow truck to get it, I think im up in brownie points rn. – Neftali",
-        entry7: "She came to my work!! We went to Culver’s, it was mid too. That’s 0 for 2 on restaurants right now 😂 But... I think she might like me, right? She wouldn’t have come if she didn’t, or am I just crazy?! I want to tell her how I feel. I might actually do it.– Neftali",
-        entry8: "SHE LIKESSSSSS MEEEEEEEEE!!!!!!! She really likes me! i took her to go get pho and the whole time I was so nervous. After that i wook her to the tempe parking lot by the bridge and confessed. AND SHE SAID SHEEE LIKESSSS MEEEEE!!! I cant belive it, im over the moon rn--Neftali",
-        entry9: "She interrogated me about the cult, which I absolutely don’t blame her for. She asked, and I answered. I was worried she’d lose interest, but she assured me she didn’t. We ate sushi and continued to talk. The night was fun. Neftali",
-        entry10: "I did it fellas, I took her to go see a Studio Ghibli movie. I wanted her to like it so badly because they’re the best and I love them a lot. She laid down on my shoulder at the movie theater and I was geeked. Neftali",
-        entry11: "We went to Home Depot and looked at chandeliers, believe it or not. We walked around like a married couple, it was kinda funny. We then went to go see the F1 movie, which was pretty good, and afterwards we went back to Home Depot where we talked about her past and how she got kicked out. We also soft launched, which was amazing. Neftali",
-        entry12: "It was the 4th of July weekend and we went to eat brunch at IHOP. It was so good. Afterwards we went to Changing Hands Bookstore and we both bought some books. Then we went to the library and I helped her with the placement test for math, but we didn’t finish. Neftali",
-        entry13: "She came to Sherwin to bring me and Daisy drinks. Daisy loved her and I was so happy to see her. We talked for a while, then we parted ways. Neftali",
-        entry14: "I went to church, it was amazing. I was happy to be able to see how others worship. Afterward we went to Ranch Market where we tried to find the horchata mix, but we couldn’t. We went to Bobby Q, note to self, take her later in the year and eat outside. Afterwards we went to Barnes & Noble, got some ice cream and snacks, and then she had to go home to take the boys their food. Neftali (kissed her too btw)",
-        entry15: "Bananas, so many bananas. Poor Madi had to bake so many cupcakes. I went to help her unload them. I met Stella, Chloe, and Nico today. They were all chill as hell. Neftali",
-        entry16: "We went to see Jurassic Park. The movie was kinda mid, but the Chili’s, oh my God, it was so good. I owe Madi big time for this, need to cash some checks. Neftali",
-        entry17: "We went to eat Korean BBQ and she loved it. I was cooking the whole time and she was just watching me, probably because I got a haircut and she was objectifying me. We also got some ice cream. Afterwards we went to the park and had to walk off some of the food. She popped my pimples and looked so cute focusing on it. Neftali",
-        entry18: "We went to get pizza and wings from Napoli, it was bomb. Afterwards we went to the park, practiced her pitch, and I started working on her website. Neftali",
-        entry19: "My tonsils feel like shit. My body aches and I feel like I can’t swallow. Madi asked if I wanted anything and she brought me coffee. She met Nube and even said hi to Pablito. It was a little awkward but funny. I’m just so happy she brought me this. Neftali",
-        entry20: "That movie was badass. Madi cried for Sue, but it was fine because she survived with plot armor. After the movie, we stayed up and talked about the issues with the people getting sued. We also got some Salsita tacos. Neftali",
-        entry21: "Another Sunday, another dollar. After the service, we went to Texas. Madi saw her parents. I was shocked she saw her dad and they talked outside for a while. We came back in and she told me how it went. She also texted her mom and they both seemed to reconnect. I wish her the best and hope this keeps going. Neftali",
-        entry22: "Went to Cholla to work on the website. We finished it. Madi really liked it and I do too. She showed her mom, who loved it as well. We grabbed Taco Bell and called it a night. Neftali",
-        entry23: "She pulled up to Sherwin after lunch with her parents. She brought me a sandwich, it was pretty good. We talked, then she went back home. Neftali",
-        entry24: "Hey Madi, we ended up going to Five Below. I was buying stuff for her while shopping, which she might’ve known, but she said she didn’t pay much attention to it. Then we went to church to try and find some things, but we couldn’t. We got In-N-Out milkshakes afterwards. Neftali",
-        entry25: "This man said, let me wait and ask Gladys. I’m a grown-ass man and I do as I please, so I will ask her out whenever I want to, not when you find the time to go have lunch with me. Neftali",
-        entry26: "We had dinner with her parents and now I’m her mom’s best friend. We talked and shit-talked and I’m so glad Madi was able to go back home after three years. Neftali",
+/* ---------------- 4. HELPERS ---------------- */
 
-        photo1: "Oh, the glorious warmth of summer! This picture captures a perfect afternoon by the shimmering lake, where laughter echoed among the dragonflies. It was a day woven with sunshine, gentle splashes, and pure bliss, like a memory spun from light. ☀️",
-        photo2: "My heart melts every time I see this little fluffball! Their sleepy purr is the best melody, and their tiny paws bring endless joy. Truly the most adorable companion a person could ask for, a guardian of coziness. ❤️🐾",
-        photo3: "Nature's artistry is simply breathtaking! This snapshot from my wanderings captures the magical way sunlight filters through the ancient, moss-covered trees, creating a dappled, emerald wonderland. Every leaf, every branch hums with life. 🌳🦋",
-        time_since_met_header: "Our Enchanting Journey Together! 💖",
-        music_player_header: "Melodies of Our Connection 🎶"
-    };
+const $ = (id) => document.getElementById(id);
+
+function esc(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function textToHtml(s) {
+  return esc(s).replace(/\n/g, "<br>");
+}
+
+function photoUrl(path) {
+  if (!path) return "";
+  if (path.startsWith("http") || path.startsWith("photo/")) return path;
+  return db.storage.from("memories").getPublicUrl(path).data.publicUrl;
+}
+
+function whisper(msg, bad = false) {
+  let el = $("whisper");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "whisper";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.className = "whisper show" + (bad ? " bad" : "");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => (el.className = "whisper"), 2600);
+}
+
+/* ---------------- 5. LOAD EVERYTHING ---------------- */
+
+async function loadAll() {
+  if (!db) return;
+  try {
+    const [s, e, p] = await Promise.all([
+      db.from("settings").select("key,value"),
+      db.from("entries").select("*").order("position", { ascending: true }),
+      db.from("photos").select("*").order("position", { ascending: true }),
+    ]);
+
+    if (s.data) s.data.forEach((r) => (state.settings[r.key] = r.value));
+    if (e.data && e.data.length) state.entries = e.data;
+    if (p.data && p.data.length) {
+      state.photos = p.data.map((r) => ({
+        id: r.id,
+        path: r.path,
+        url: photoUrl(r.path),
+        caption: r.caption || "",
+        position: r.position,
+      }));
+    }
+  } catch (err) {
+    console.warn("Could not reach the grove, using saved copy.", err);
+  }
+
+  applySettings();
+  populateNotebookTabs();
+  populateMemoryAlbumImages();
+}
+
+function applySettings() {
+  const frame = $("playlistFrame");
+  if (frame && state.settings.playlist_url) {
+    if (frame.src !== state.settings.playlist_url)
+      frame.src = state.settings.playlist_url;
+  }
+}
+
+/* ---------------- 6. PIN GATE ---------------- */
 
 function enterDigit(digit) {
-    if (pin.length < MAX_PIN_LENGTH) {
-        pin += digit;
-        updateDots();
-        pinError.style.display = 'none';
-    }
+  if (pin.length < MAX_PIN_LENGTH) {
+    pin += digit;
+    updateDots();
+    $("pinError").style.display = "none";
+  }
 }
 
 function clearPin() {
-    pin = pin.slice(0, -1);
-    updateDots();
-    pinError.style.display = 'none';
+  pin = pin.slice(0, -1);
+  updateDots();
+  $("pinError").style.display = "none";
 }
 
 function updateDots() {
-    document.querySelectorAll('.pin-dot').forEach((dot, index) => {
-        dot.classList.toggle('filled', index < pin.length);
-    });
+  document.querySelectorAll(".pin-dot").forEach((dot, i) => {
+    dot.classList.toggle("filled", i < pin.length);
+  });
 }
 
 function submitPin() {
-    if (pin === correctPin) {
-        document.getElementById('pinOverlay').style.display = 'none';
-        pinError.style.display = 'none';
-        closeAllOverlays();
-    } else {
-        pin = "";
-        updateDots();
-        pinError.style.display = 'block';
-    }
+  if (pin === (state.settings.visitor_pin || "062125")) {
+    unlockSite();
+  } else {
+    pin = "";
+    updateDots();
+    $("pinError").style.display = "block";
+  }
 }
 
-//make it one time a day or forever
+function unlockSite() {
+  $("pinOverlay").style.display = "none";
+  $("pinError").style.display = "none";
+  closeAllOverlays();
+}
+
+/* ---------------- 7. LETTERS / JOURNAL ---------------- */
+
 function openDailyLetter() {
-    /*const today = new Date().toDateString();
-    const lastOpened = localStorage.getItem('dailyLetterDate');
-    const id = (lastOpened === today) ? 'daily_opened' : 'daily';
-    if (id === 'daily') localStorage.setItem('dailyLetterDate', today);
-    showScroll(id);
-    */
-    showScroll('daily');
+  $("scrollContent").innerHTML = textToHtml(state.settings.daily_letter);
+  $("scrollOverlay").style.display = "block";
+  closeNotebookPage();
+  closeMusicPlayer();
+  stopTimer();
 }
 
 function openNotebookPage() {
-    document.getElementById('notebookPageOverlay').style.display = 'flex';
-    populateNotebookTabs();
-    closeScroll(); closeMusicPlayer(); stopTimer();
+  $("notebookPageOverlay").style.display = "flex";
+  populateNotebookTabs();
+  closeScroll();
+  closeMusicPlayer();
+  closeMemoryPage();
+  stopTimer();
 }
 
 function closeNotebookPage() {
-    document.getElementById('notebookPageOverlay').style.display = 'none';
+  $("notebookPageOverlay").style.display = "none";
 }
 
 function populateNotebookTabs() {
-    const notebookTabs = document.getElementById('notebookTabs');
-    const contentArea = document.getElementById('notebookContentArea');
-    //add entry labels and content
-    const entryLabels = [
-        { id: 'entry1', label: 'Our dates:' },
-        { id: 'entry2', label: 'Last Rodeo 05/24/25' },
-        { id: 'entry3', label: 'Lilo n Stitch / CFA? / Tempe 05/30/25' },
-        { id: 'entry4', label: 'Round 1 / In-N-Out 06/03/25' },
-        { id: 'entry5', label: 'Applebee’s / HTTYD 06/13/25' },
-        { id: 'entry6', label: 'Coffee Shop 06/19' },
-        { id: 'entry7', label: '06/20 Culver’s Lunch' },
-        { id: 'entry8', label: '06/21 Confession Day' },
-        { id: 'entry9', label: '06/27 Sushi & Talk' },
-        { id: 'entry10', label: '06/28 Castle in the Sky' },
-        { id: 'entry11', label: '07/01 Soft Launch' },
-        { id: 'entry12', label: '07/04 Placement Test' },
-        { id: 'entry13', label: '07/05 Sherwin Drinks' },
-        { id: 'entry14', label: '07/13 Big Sunday' },
-        { id: 'entry15', label: '07/14 Cupcakes' },
-        { id: 'entry16', label: '07/18 Dino Drive-In' },
-        { id: 'entry17', label: '07/21 BBQ & Park' },
-        { id: 'entry18', label: '07/23 Study Day' },
-        { id: 'entry19', label: '07/24 Sick Day' },
-        { id: 'entry20', label: '07/26 Fantastic 4' },
-        { id: 'entry21', label: '07/27 Roadhouse + Parents' },
-        { id: 'entry22', label: '07/30 Website Grind' },
-        { id: 'entry23', label: '08/01 Sherwin' },
-        { id: 'entry24', label: '08/02 Full Day' },
-        { id: 'entry25', label: '08/03 Ask Delay' },
-        { id: 'entry26', label: '08/06 Parent day' }
-    ];
+  const tabs = $("notebookTabs");
+  const area = $("notebookContentArea");
+  if (!tabs || !area) return;
 
-    notebookTabs.innerHTML = "";
-    contentArea.innerHTML = "";
+  tabs.innerHTML = "";
+  area.innerHTML = "";
 
-    entryLabels.forEach(entry => {
-        const tab = document.createElement('div');
-        tab.className = 'notebook-tab';
-        tab.dataset.content = entry.id;
-        tab.textContent = entry.label;
-        tab.onclick = () => showNotebookContent(entry.id);
-        notebookTabs.appendChild(tab);
+  state.entries.forEach((entry) => {
+    const tab = document.createElement("div");
+    tab.className = "notebook-tab";
+    tab.dataset.content = entry.id;
+    tab.textContent = entry.label;
+    tab.onclick = () => showNotebookContent(entry.id);
+    tabs.appendChild(tab);
 
-        const div = document.createElement('div');
-        div.id = `notebook-${entry.id}`;
-        div.innerHTML = allContents[entry.id] || '';
-        contentArea.appendChild(div);
-    });
+    const div = document.createElement("div");
+    div.id = `notebook-${entry.id}`;
+    div.innerHTML = textToHtml(entry.body);
+    area.appendChild(div);
+  });
 }
 
-
 function showNotebookContent(id) {
-    document.querySelectorAll('#notebookContentArea > div')
-        .forEach(d => d.classList.remove('active'));
+  document
+    .querySelectorAll("#notebookContentArea > div")
+    .forEach((d) => d.classList.remove("active"));
 
-    const envelope = document.getElementById('entryEnvelope');
-    envelope.style.display = 'block';
-    setTimeout(() => {
-        document.getElementById(`notebook-${id}`).classList.add('active');
-        envelope.style.display = 'none';
-    }, 800);
+  const envelope = $("entryEnvelope");
+  envelope.style.display = "block";
+  setTimeout(() => {
+    const target = $(`notebook-${id}`);
+    if (target) target.classList.add("active");
+    envelope.style.display = "none";
+  }, 800);
 
-    document.querySelectorAll('.notebook-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.content === id);
-    });
+  document.querySelectorAll(".notebook-tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.content === String(id));
+  });
 }
 
 function closeEntryContent() {
-    document.querySelectorAll('#notebookContentArea > div')
-        .forEach(div => div.classList.remove('active'));
-    document.querySelectorAll('.notebook-tab')
-        .forEach(tab => tab.classList.remove('active'));
+  document
+    .querySelectorAll("#notebookContentArea > div")
+    .forEach((d) => d.classList.remove("active"));
+  document
+    .querySelectorAll(".notebook-tab")
+    .forEach((t) => t.classList.remove("active"));
+}
+
+/* ---------------- 8. ALBUM ---------------- */
+
+function populateMemoryAlbumImages() {
+  const album = $("memoryAlbum");
+  if (!album) return;
+  album.innerHTML = "";
+  state.photos.forEach((p) => {
+    const figure = document.createElement("figure");
+    figure.className = "memory-figure";
+    const img = document.createElement("img");
+    img.src = p.url;
+    img.alt = p.caption || "Memory";
+    img.className = "memory-photo";
+    img.loading = "lazy";
+    figure.appendChild(img);
+    if (p.caption) {
+      const cap = document.createElement("figcaption");
+      cap.className = "memory-caption";
+      cap.textContent = p.caption;
+      figure.appendChild(cap);
+    }
+    album.appendChild(figure);
+  });
 }
 
 function toggleAlbum() {
-    document.getElementById('scrollContent').innerHTML =
-        `<h3>Summer Memories</h3>${allContents.photo1}<br><br>` +
-        `<h3>Favorite Pet Pic</h3>${allContents.photo2}<br><br>` +
-        `<h3>Nature's Beauty</h3>${allContents.photo3}`;
-    document.getElementById('scrollOverlay').style.display = 'block';
-    closeNotebookPage(); closeMusicPlayer(); stopTimer();
+  closeNotebookPage();
+  closeScroll();
+  closeMusicPlayer();
+  $("memoryPageOverlay").style.display = "block";
 }
 
+function closeMemoryPage() {
+  $("memoryPageOverlay").style.display = "none";
+}
+
+/* ---------------- 9. TIMER ---------------- */
+
 function openTimeSinceMet() {
-    document.getElementById('scrollContent').innerHTML =
-        `<h3>${allContents.time_since_met_header}</h3><div id="timerDisplay"></div>`;
-    document.getElementById('scrollOverlay').style.display = 'block';
-    closeNotebookPage(); closeMusicPlayer(); startTimer();
+  $("scrollContent").innerHTML =
+    `<h3>Our Enchanting Journey Together! 💖</h3><div id="timerDisplay"></div>`;
+  $("scrollOverlay").style.display = "block";
+  closeNotebookPage();
+  closeMusicPlayer();
+  closeMemoryPage();
+  startTimer();
 }
 
 function startTimer() {
-    stopTimer(); updateTimeSinceMet();
-    timerInterval = setInterval(updateTimeSinceMet, 1000);
+  stopTimer();
+  updateTimeSinceMet();
+  timerInterval = setInterval(updateTimeSinceMet, 1000);
 }
 
 function stopTimer() {
-    if (timerInterval) clearInterval(timerInterval);
+  if (timerInterval) clearInterval(timerInterval);
 }
 
 function updateTimeSinceMet() {
-    const now = new Date();
-    const seconds = Math.floor((now - metDate) / 1000);
-    const days = Math.floor(seconds / 86400);
-    const hrs = String(Math.floor((seconds % 86400) / 3600)).padStart(2, '0');
-    const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-    const secs = String(seconds % 60).padStart(2, '0');
-    document.getElementById('timerDisplay').textContent = `${days} days, ${hrs}h ${mins}m ${secs}s`;
+  const el = $("timerDisplay");
+  if (!el) return;
+  const metDate = new Date(state.settings.met_date);
+  const seconds = Math.floor((new Date() - metDate) / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hrs = String(Math.floor((seconds % 86400) / 3600)).padStart(2, "0");
+  const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+  const secs = String(seconds % 60).padStart(2, "0");
+  el.textContent = `${days} days, ${hrs}h ${mins}m ${secs}s`;
 }
 
-function showScroll(id) {
-    document.getElementById('scrollContent').innerHTML = allContents[id] || '';
-    document.getElementById('scrollOverlay').style.display = 'block';
-    closeNotebookPage(); closeMusicPlayer(); stopTimer();
-}
+/* ---------------- 10. MISC OVERLAYS ---------------- */
 
 function closeScroll() {
-    document.getElementById('scrollOverlay').style.display = 'none';
-    stopTimer();
+  $("scrollOverlay").style.display = "none";
+  stopTimer();
 }
 
 function openMusicPlayer() {
-    document.getElementById('musicOverlay').style.display = 'flex';
-    closeScroll(); closeNotebookPage(); stopTimer();
+  $("musicOverlay").style.display = "flex";
+  closeScroll();
+  closeNotebookPage();
+  closeMemoryPage();
+  stopTimer();
 }
 
 function closeMusicPlayer() {
-    document.getElementById('musicOverlay').style.display = 'none';
+  $("musicOverlay").style.display = "none";
 }
 
 function closeAllOverlays() {
-    closeScroll(); closeNotebookPage(); closeMusicPlayer(); stopTimer();
+  closeScroll();
+  closeNotebookPage();
+  closeMusicPlayer();
+  closeMemoryPage();
+  stopTimer();
 }
 
 function pingMadi() {
-    window.location.href = "sms:+16026958531?body=Madi,%20I%20need%20you!";
+  const num = state.settings.ping_number || "";
+  const msg = encodeURIComponent(state.settings.ping_message || "Hi!");
+  window.location.href = `sms:${num}?body=${msg}`;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    populateNotebookTabs();
-});
+/* ============================================================
+   11. THE KEEPER'S GATE  (admin)
+   ============================================================ */
 
-//Add memory album images
-function populateMemoryAlbumImages() {
-    const album = document.getElementById('memoryAlbum');
-    const imageFilenames = [
-    'IMG_0032.jpg', 'IMG_0038.jpg', 'IMG_1064.jpg',
-    'IMG_4221.jpg', 'IMG_4311.jpg', 'IMG_4327.jpg',
-    'IMG_4459.jpg', 'IMG_4543.jpg', 'IMG_4571.jpg',
-    'IMG_7905.jpg', 'lp_image.jpg'
-];
+function openKeeperGate() {
+  if (state.isAdmin) {
+    openAdminPanel();
+    return;
+  }
+  $("keeperGate").style.display = "flex";
+  $("keeperEmail").focus();
+}
 
-    album.innerHTML = "";
-    imageFilenames.forEach(filename => {
-        const img = document.createElement('img');
-        img.src = `photo/${filename}`;
-        img.alt = 'Memory';
-        img.className = 'memory-photo';
-        album.appendChild(img);
+function closeKeeperGate() {
+  $("keeperGate").style.display = "none";
+  $("keeperError").textContent = "";
+}
+
+async function keeperSignIn() {
+  if (!db) {
+    $("keeperError").textContent = "The grove isn't connected yet (check config.js).";
+    return;
+  }
+  const email = $("keeperEmail").value.trim();
+  const password = $("keeperPassword").value;
+  $("keeperError").textContent = "Knocking on the door…";
+
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  if (error) {
+    $("keeperError").textContent = "That key doesn't fit. " + error.message;
+    return;
+  }
+  state.isAdmin = true;
+  $("keeperPassword").value = "";
+  closeKeeperGate();
+  unlockSite();
+  showKeeperBadge();
+  openAdminPanel();
+  whisper("🌿 Welcome back, keeper.");
+}
+
+async function keeperSignOut() {
+  if (db) await db.auth.signOut();
+  state.isAdmin = false;
+  closeAdminPanel();
+  const badge = $("keeperBadge");
+  if (badge) badge.style.display = "none";
+  whisper("🍃 Signed out.");
+}
+
+function showKeeperBadge() {
+  const badge = $("keeperBadge");
+  if (badge) badge.style.display = "flex";
+}
+
+function openAdminPanel() {
+  $("adminPanel").style.display = "block";
+  adminTab("journal");
+}
+
+function closeAdminPanel() {
+  $("adminPanel").style.display = "none";
+}
+
+function adminTab(name) {
+  ["journal", "album", "letter", "settings"].forEach((t) => {
+    const pane = $("admin-" + t);
+    if (pane) pane.style.display = t === name ? "block" : "none";
+    const btn = $("adminTab-" + t);
+    if (btn) btn.classList.toggle("active", t === name);
+  });
+  if (name === "journal") renderAdminEntries();
+  if (name === "album") renderAdminPhotos();
+  if (name === "letter") $("adminDailyLetter").value = state.settings.daily_letter || "";
+  if (name === "settings") {
+    $("adminMetDate").value = state.settings.met_date || "";
+    $("adminPin").value = state.settings.visitor_pin || "";
+    $("adminPingNumber").value = state.settings.ping_number || "";
+    $("adminPingMessage").value = state.settings.ping_message || "";
+    $("adminPlaylist").value = state.settings.playlist_url || "";
+  }
+}
+
+/* ---- journal admin ---- */
+
+function renderAdminEntries() {
+  const list = $("adminEntryList");
+  list.innerHTML = state.entries
+    .map(
+      (e) => `
+      <div class="admin-row">
+        <span class="admin-row-label">${esc(e.label)}</span>
+        <button class="admin-mini" onclick="editEntry(${e.id})">edit</button>
+        <button class="admin-mini danger" onclick="deleteEntry(${e.id})">×</button>
+      </div>`
+    )
+    .join("");
+}
+
+function newEntry() {
+  state.editingEntryId = null;
+  $("entryLabel").value = "";
+  $("entryDate").value = "";
+  $("entryBody").value = "";
+  $("entryPosition").value = state.entries.length + 1;
+  $("entryFormTitle").textContent = "A new page";
+  $("entryForm").style.display = "block";
+}
+
+function editEntry(id) {
+  const e = state.entries.find((x) => x.id === id);
+  if (!e) return;
+  state.editingEntryId = id;
+  $("entryLabel").value = e.label || "";
+  $("entryDate").value = e.entry_date || "";
+  $("entryBody").value = e.body || "";
+  $("entryPosition").value = e.position ?? 0;
+  $("entryFormTitle").textContent = "Editing this page";
+  $("entryForm").style.display = "block";
+}
+
+function cancelEntryForm() {
+  $("entryForm").style.display = "none";
+  state.editingEntryId = null;
+}
+
+async function saveEntry() {
+  if (!db) return whisper("Not connected to the grove.", true);
+  const payload = {
+    label: $("entryLabel").value.trim() || "Untitled",
+    body: $("entryBody").value,
+    entry_date: $("entryDate").value || null,
+    position: parseInt($("entryPosition").value || "0", 10),
+  };
+
+  let res;
+  if (state.editingEntryId) {
+    res = await db.from("entries").update(payload).eq("id", state.editingEntryId);
+  } else {
+    res = await db.from("entries").insert(payload);
+  }
+  if (res.error) return whisper(res.error.message, true);
+
+  cancelEntryForm();
+  await loadAll();
+  renderAdminEntries();
+  whisper("🌱 Page saved.");
+}
+
+async function deleteEntry(id) {
+  if (!confirm("Tear this page out for good?")) return;
+  const { error } = await db.from("entries").delete().eq("id", id);
+  if (error) return whisper(error.message, true);
+  await loadAll();
+  renderAdminEntries();
+  whisper("🍂 Page removed.");
+}
+
+/* ---- album admin ---- */
+
+function renderAdminPhotos() {
+  const list = $("adminPhotoList");
+  list.innerHTML = state.photos
+    .map(
+      (p) => `
+      <div class="admin-photo">
+        <img src="${esc(p.url)}" alt="">
+        <input class="admin-input tiny" value="${esc(p.caption)}"
+               placeholder="a little caption…"
+               onchange="savePhotoCaption(${p.id}, this.value)">
+        <button class="admin-mini danger" onclick="deletePhoto(${p.id})">×</button>
+      </div>`
+    )
+    .join("");
+}
+
+async function uploadPhotos(input) {
+  if (!db) return whisper("Not connected to the grove.", true);
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  $("uploadStatus").textContent = `Planting ${files.length} memory(ies)…`;
+
+  let n = state.photos.length;
+  for (const file of files) {
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${Date.now()}_${safe}`;
+    const up = await db.storage.from("memories").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
     });
+    if (up.error) {
+      whisper(up.error.message, true);
+      continue;
+    }
+    await db.from("photos").insert({ path, caption: "", position: n++ });
+  }
+
+  input.value = "";
+  $("uploadStatus").textContent = "";
+  await loadAll();
+  renderAdminPhotos();
+  whisper("📸 Memories added.");
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    populateNotebookTabs();
-    populateMemoryAlbumImages();
+async function savePhotoCaption(id, caption) {
+  const { error } = await db.from("photos").update({ caption }).eq("id", id);
+  if (error) return whisper(error.message, true);
+  await loadAll();
+  whisper("✍️ Caption saved.");
+}
+
+async function deletePhoto(id) {
+  const p = state.photos.find((x) => x.id === id);
+  if (!p || !confirm("Let this memory go?")) return;
+  if (p.path) await db.storage.from("memories").remove([p.path]);
+  const { error } = await db.from("photos").delete().eq("id", id);
+  if (error) return whisper(error.message, true);
+  await loadAll();
+  renderAdminPhotos();
+  whisper("🍃 Memory removed.");
+}
+
+/* ---- settings admin ---- */
+
+async function saveSetting(key, value) {
+  if (!db) return whisper("Not connected to the grove.", true);
+  const { error } = await db.from("settings").upsert({ key, value });
+  if (error) return whisper(error.message, true);
+  state.settings[key] = value;
+  applySettings();
+  whisper("✨ Saved.");
+}
+
+async function saveDailyLetter() {
+  await saveSetting("daily_letter", $("adminDailyLetter").value);
+}
+
+async function saveAllSettings() {
+  await saveSetting("met_date", $("adminMetDate").value);
+  await saveSetting("visitor_pin", $("adminPin").value);
+  await saveSetting("ping_number", $("adminPingNumber").value);
+  await saveSetting("ping_message", $("adminPingMessage").value);
+  await saveSetting("playlist_url", $("adminPlaylist").value);
+}
+
+/* ---------------- 12. BOOT ---------------- */
+
+document.addEventListener("DOMContentLoaded", async () => {
+  populateNotebookTabs();
+  populateMemoryAlbumImages();
+  await loadAll();
+
+  if (db) {
+    const { data } = await db.auth.getSession();
+    if (data && data.session) {
+      state.isAdmin = true;
+      showKeeperBadge();
+    }
+  }
 });
 
-function toggleAlbum() {
-    document.getElementById('notebookPageOverlay').style.display = 'none';
-    document.getElementById('scrollOverlay').style.display = 'none';
-    document.getElementById('musicOverlay').style.display = 'none';
-    document.getElementById('memoryPageOverlay').style.display = 'block';
-}
-
-
-function closeMemoryPage() {
-    document.getElementById('memoryPageOverlay').style.display = 'none';
-}
-
+/* expose for inline onclick handlers */
+Object.assign(window, {
+  enterDigit, clearPin, submitPin,
+  openDailyLetter, openNotebookPage, closeNotebookPage, closeEntryContent,
+  toggleAlbum, closeMemoryPage, openTimeSinceMet,
+  closeScroll, openMusicPlayer, closeMusicPlayer, pingMadi,
+  openKeeperGate, closeKeeperGate, keeperSignIn, keeperSignOut,
+  openAdminPanel, closeAdminPanel, adminTab,
+  newEntry, editEntry, cancelEntryForm, saveEntry, deleteEntry,
+  uploadPhotos, savePhotoCaption, deletePhoto,
+  saveDailyLetter, saveAllSettings,
+});
