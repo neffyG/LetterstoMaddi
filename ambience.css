@@ -1,0 +1,140 @@
+/* ============================================================
+   ambience.css — motion for the forest.
+   Pairs with ambience.js. Purely decorative.
+   ============================================================ */
+
+.forest {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.forest .scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Every animated group rotates about its own centre rather than
+   the SVG origin — without this the trees swing like pendulums. */
+.forest .crown,
+.forest .cluster,
+.forest .frond {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+
+/* ---------- canopy and crowns sway in the wind ---------- */
+
+.forest .crown {
+  animation: sway var(--dur, 9s) var(--delay, 0s) ease-in-out infinite alternate;
+}
+
+.forest .cluster {
+  transform-origin: 50% 0%;      /* hangs from above, so it pivots at the top */
+  animation: sway var(--dur, 8s) var(--delay, 0s) ease-in-out infinite alternate;
+}
+
+@keyframes sway {
+  from { transform: rotate(calc(var(--tilt, 2deg) * -1)) translateX(-4px); }
+  to   { transform: rotate(var(--tilt, 2deg)) translateX(4px); }
+}
+
+/* ---------- ferns shiver, faster and smaller ---------- */
+
+.forest .frond {
+  animation: shiver var(--dur, 6s) var(--delay, 0s) ease-in-out infinite alternate;
+}
+
+@keyframes shiver {
+  from { transform: rotate(calc(var(--tilt, 3deg) * -1)); }
+  to   { transform: rotate(var(--tilt, 3deg)); }
+}
+
+/* ---------- light through the leaves ---------- */
+
+.forest .ray {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  animation: shaft var(--dur, 20s) var(--delay, 0s) ease-in-out infinite alternate;
+}
+
+@keyframes shaft {
+  from { opacity: .5;  transform: rotate(-1.6deg) translateX(-16px); }
+  to   { opacity: 1;   transform: rotate(1.6deg)  translateX(16px); }
+}
+
+/* ============================================================
+   FIREFLIES
+   ============================================================ */
+
+.fireflies {
+  position: absolute;
+  inset: 0;
+}
+
+.firefly {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: #fff3c4;
+  box-shadow: 0 0 10px 3px rgba(244,221,164,.75);
+  animation:
+    wander var(--dur) var(--delay) ease-in-out infinite alternate,
+    glow var(--blink) var(--delay) ease-in-out infinite;
+}
+
+@keyframes wander {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(var(--dx), var(--dy)); }
+}
+
+@keyframes glow {
+  0%, 100% { opacity: .15; box-shadow: 0 0 4px 1px rgba(244,221,164,.3); }
+  50%      { opacity: 1;   box-shadow: 0 0 14px 4px rgba(244,221,164,.9); }
+}
+
+/* ============================================================
+   DRIFTING SEEDS
+   ============================================================ */
+
+.seed {
+  position: absolute;
+  top: -20px;
+  left: var(--x);
+  width: 9px;
+  height: 9px;
+  border-radius: 50% 50% 50% 0;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), rgba(226,238,206,.4));
+  box-shadow: 0 0 6px rgba(255,255,255,.4);
+  animation: fall var(--dur) linear forwards;
+}
+
+@keyframes fall {
+  from { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  10%  { opacity: .9; }
+  90%  { opacity: .9; }
+  to   { opacity: 0; transform: translate(var(--drift), 105vh) rotate(var(--spin)); }
+}
+
+/* ============================================================
+   Nothing here animates for someone who asked it not to.
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .fireflies,
+  .seed { display: none; }
+
+  .forest .crown,
+  .forest .cluster,
+  .forest .frond,
+  .forest .ray { animation: none; }
+}

@@ -23,11 +23,11 @@ const FALLBACK = {
     daily_letter:
       "✨ Hi :) i know this is long overdue, but today is your special day my love, look around the website and enjoy it Mads its all yours!! I hope I can make the rest of this day as sepcial as you are to me!🌸 I love you Madi!",
     met_date: "2025-06-21T22:00:00-07:00",
-    ping_number: "+16026958531",
+    ping_number: "",   // real number lives in Supabase settings, not in this public file
     ping_message: "Madi, I need you!",
     playlist_url:
       "https://embed.music.apple.com/us/playlist/madi/pl.u-xlyNqLluJEKRDek",
-    visitor_pin: "062125",
+    visitor_pin: "080625",
   },
   entries: [
     {
@@ -42,7 +42,7 @@ const FALLBACK = {
     "IMG_0032.jpg", "IMG_0038.jpg", "IMG_1064.jpg", "IMG_4221.jpg",
     "IMG_4311.jpg", "IMG_4327.jpg", "IMG_4459.jpg", "IMG_4543.jpg",
     "IMG_4571.jpg", "IMG_7905.jpg", "lp_image.jpg",
-  ].map((f, i) => ({ id: -(i + 1), url: `photo/${f}`, caption: "", position: i })),
+  ].map((f, i) => ({ id: -(i + 1), url: f, caption: "", position: i })),
 };
 
 /* ---------------- 3. STATE ---------------- */
@@ -133,20 +133,41 @@ function applySettings() {
   }
 }
 
-/* ---------------- 6. PIN GATE ---------------- */
+/* ---------------- 6. PIN GATE ----------------
+   The site is locked until the right key is entered. This is a
+   soft gate, not a vault: anything sent to a browser can be read
+   by someone determined. It keeps the site private from casual
+   eyes, which is what it's for.
+   ------------------------------------------------------------ */
+
+const LOCK_ATTEMPTS = 5;          // wrong tries before a cooldown
+const LOCK_COOLDOWN = 30;         // seconds
+
+let pinBusy = false;              // ignore input mid-animation
+let wrongTries = 0;
+let cooldownTimer = null;
+
+function setLocked(locked) {
+  document.body.classList.toggle("locked", locked);
+}
 
 function enterDigit(digit) {
-  if (pin.length < MAX_PIN_LENGTH) {
-    pin += digit;
-    updateDots();
-    $("pinError").style.display = "none";
-  }
+  if (pinBusy || pin.length >= MAX_PIN_LENGTH) return;
+  pin += digit;
+  updateDots();
+  hidePinError();
+  buzz(8);
+
+  // full length? check it without making her hunt for the tick
+  if (pin.length === MAX_PIN_LENGTH) setTimeout(submitPin, 180);
 }
 
 function clearPin() {
+  if (pinBusy || !pin.length) return;
   pin = pin.slice(0, -1);
   updateDots();
-  $("pinError").style.display = "none";
+  hidePinError();
+  buzz(8);
 }
 
 function updateDots() {
@@ -155,21 +176,97 @@ function updateDots() {
   });
 }
 
+function hidePinError() {
+  const e = $("pinError");
+  if (e) e.style.display = "none";
+}
+
+function showPinError(msg) {
+  const e = $("pinError");
+  if (!e) return;
+  if (msg) e.textContent = msg;
+  e.style.display = "block";
+}
+
+function buzz(ms) {
+  if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (_) {} }
+}
+
 function submitPin() {
-  if (pin === (state.settings.visitor_pin || "062125")) {
-    unlockSite();
-  } else {
+  if (pinBusy) return;
+
+  const expected = String(state.settings.visitor_pin || "080625");
+
+  if (pin === expected) {
+    pinBusy = true;
+    wrongTries = 0;
+    $("pinPad").classList.add("accepted");
+    buzz([12, 60, 22]);
+    setTimeout(() => {
+      unlockSite();
+      pinBusy = false;
+    }, 620);
+    return;
+  }
+
+  // wrong
+  pinBusy = true;
+  wrongTries++;
+  buzz([30, 50, 30]);
+  const pad = $("pinPad");
+  pad.classList.add("rejected");
+  showPinError();
+
+  setTimeout(() => {
+    pad.classList.remove("rejected");
     pin = "";
     updateDots();
-    $("pinError").style.display = "block";
-  }
+    pinBusy = false;
+    if (wrongTries >= LOCK_ATTEMPTS) startCooldown(LOCK_COOLDOWN);
+  }, 520);
 }
+
+/* after too many wrong guesses, the pad rests for a bit */
+function startCooldown(seconds) {
+  const pad = $("pinPad");
+  pinBusy = true;
+  pad.classList.add("resting");
+
+  const tick = () => {
+    showPinError("The grove is resting. Try again in " + seconds + "s 🌙");
+    if (seconds-- <= 0) {
+      clearInterval(cooldownTimer);
+      pad.classList.remove("resting");
+      pinBusy = false;
+      wrongTries = 0;
+      hidePinError();
+      const e = $("pinError");
+      if (e) e.textContent = "You are not Madi, f off pls 🚫";
+    }
+  };
+  tick();
+  cooldownTimer = setInterval(tick, 1000);
+}
+
+/* No sessions, no cookies, no stored tokens. The gate is asked
+   for on every single visit, every reload. Nothing is kept.      */
 
 function unlockSite() {
   $("pinOverlay").style.display = "none";
-  $("pinError").style.display = "none";
+  hidePinError();
+  setLocked(false);
   closeAllOverlays();
 }
+
+/* ---- typing works too, for you on a laptop ---- */
+
+document.addEventListener("keydown", (ev) => {
+  if (document.body.classList.contains("locked") === false) return;
+  if ($("keeperGate").style.display === "flex") return;   // let the login form type
+  if (ev.key >= "0" && ev.key <= "9") { enterDigit(ev.key); ev.preventDefault(); }
+  else if (ev.key === "Backspace") { clearPin(); ev.preventDefault(); }
+  else if (ev.key === "Enter") { submitPin(); ev.preventDefault(); }
+});
 
 /* ---------------- 7. LETTERS / JOURNAL ---------------- */
 
@@ -342,7 +439,12 @@ function closeAllOverlays() {
 }
 
 function pingMadi() {
+  // Send a real notification if push is wired up...
+  if (typeof window.sendGrovePing === "function" && window.sendGrovePing()) return;
+
+  // ...otherwise fall back to opening a text message.
   const num = state.settings.ping_number || "";
+  if (!num) return whisper("No number saved, and push isn't ready yet.", true);
   const msg = encodeURIComponent(state.settings.ping_message || "Hi!");
   window.location.href = `sms:${num}?body=${msg}`;
 }
@@ -595,9 +697,13 @@ async function saveAllSettings() {
 /* ---------------- 12. BOOT ---------------- */
 
 document.addEventListener("DOMContentLoaded", async () => {
+  setLocked(true);
   populateNotebookTabs();
   populateMemoryAlbumImages();
   await loadAll();
+
+  // clean up after the older "remember me" build, if it ran here
+  try { localStorage.removeItem("grove.remembered"); } catch (_) {}
 
   if (db) {
     const { data } = await db.auth.getSession();
@@ -608,9 +714,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-/* expose for inline onclick handlers */
+/* expose for inline onclick handlers, and for push.js */
 Object.assign(window, {
-  enterDigit, clearPin, submitPin,
+  db, state, whisper,
+  enterDigit, clearPin, submitPin, unlockSite,
   openDailyLetter, openNotebookPage, closeNotebookPage, closeEntryContent,
   toggleAlbum, closeMemoryPage, openTimeSinceMet,
   closeScroll, openMusicPlayer, closeMusicPlayer, pingMadi,
