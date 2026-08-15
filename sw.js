@@ -12,7 +12,7 @@ self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (_) {}
 
-  const title = data.title || "A whisper from the grove 🌿";
+  const title = data.title || "New Update!! Check it out my love!";
   const body  = data.body  || "He's thinking about you.";
 
   event.waitUntil(
