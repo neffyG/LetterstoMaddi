@@ -625,7 +625,12 @@ body.locked .keeper-badge {
 
 .memory-photo:hover { transform: translateY(-4px) rotate(1.2deg); box-shadow: var(--lift-2); }
 
-/* ---------- music ---------- */
+/* ---------- music: a turntable, not a spinning circle ----------
+   The record itself is now STILL. Real vinyl grooves are concentric,
+   so rotating them is invisible anyway — only the label reads as
+   motion. Keeping the disc static frees its pseudo-elements for a
+   fixed light sheen and a tonearm that doesn't swing around with it.
+   ---------------------------------------------------------------- */
 
 .music-overlay h3 {
   font-family: var(--display);
@@ -638,55 +643,131 @@ body.locked .keeper-badge {
   flex-shrink: 0;
 }
 
-.vinyl-container {
-  position: relative;
-  width: 168px;
-  height: 168px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: repeating-radial-gradient(circle at 50% 50%, #17211a 0 2px, #232f26 2px 4px);
-  box-shadow: 0 10px 28px rgba(12,28,16,.4), inset 0 0 30px rgba(0,0,0,.6);
-  animation: spin 6s linear infinite;
+.music-overlay h3::after {
+  content: '';
+  display: block;
+  width: 46px;
+  height: 2px;
+  margin: 10px auto 0;
+  border-radius: 2px;
+  background: linear-gradient(to right, transparent, var(--bloom), transparent);
+  opacity: .6;
 }
 
+.vinyl-container {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: visible;
+
+  background:
+    /* the run-out groove near the label */
+    radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(255,255,255,.05) 34% 35%, transparent 35%),
+    /* fine grooves */
+    repeating-radial-gradient(circle at 50% 50%,
+      #0c0f0d 0 1.5px,
+      #1c241e 1.5px 3px),
+    /* the disc itself, lit from upper left */
+    radial-gradient(circle at 34% 28%, #2b352d, #0a0d0b 74%);
+
+  box-shadow:
+    0 16px 34px rgba(8,18,11,.55),          /* it sits above the deck */
+    0 2px 0 rgba(255,255,255,.06) inset,
+    0 0 0 6px #141815,                       /* the smooth outer rim */
+    0 0 0 7px rgba(255,255,255,.05);
+}
+
+/* a fixed sheen across the disc, the way a lamp catches lacquer */
+.vinyl-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    linear-gradient(122deg,
+      transparent 30%,
+      rgba(255,255,255,.10) 42%,
+      rgba(255,246,214,.16) 47%,
+      rgba(255,255,255,.06) 53%,
+      transparent 64%);
+}
+
+/* the tonearm, resting on the record */
+.vinyl-container::after {
+  content: '';
+  position: absolute;
+  top: -6%;
+  right: -14%;
+  width: 8px;
+  height: 62%;
+  border-radius: 4px;
+  transform-origin: 50% 6px;
+  transform: rotate(28deg);
+  background: linear-gradient(to bottom, #d9d2c4, #a9a294 60%, #8d8578);
+  box-shadow:
+    /* the pivot it swings from */
+    0 -9px 0 -1px #6e675c,
+    0 -9px 0 2px rgba(255,255,255,.10),
+    /* the headshell at the tip */
+    0 4px 0 1px rgba(0,0,0,.25),
+    2px 2px 6px rgba(0,0,0,.4);
+}
+
+/* only the label turns */
 .vinyl-center {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 62px;
-  height: 62px;
+  width: 74px;
+  height: 74px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: radial-gradient(circle at 36% 30%, var(--bloom-lift), var(--bloom));
+  background:
+    var(--fibre),
+    radial-gradient(circle at 34% 28%, var(--bloom-lift), var(--bloom) 64%, #8f4358);
   font-family: var(--display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--paper);
   text-align: center;
   line-height: 1.1;
+  letter-spacing: .01em;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.18),
+    0 0 14px rgba(0,0,0,.4);
+  transform: translate(-50%, -50%);
+  animation: spinLabel 4.5s linear infinite;
+  z-index: 1;
 }
 
+@keyframes spinLabel {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* the spindle pin, dead centre and still */
 .vinyl-hole {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--paper);
+  background: radial-gradient(circle at 35% 30%, #fffdf4, #cfc6b0);
+  box-shadow: 0 0 0 2px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.6);
   z-index: 2;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
+/* the deck the playlist sits in */
 .apple-music-embed {
+  position: relative;
   width: 100%;
   max-width: 660px;
   flex: 1 1 auto;
@@ -694,10 +775,22 @@ body.locked .keeper-badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--edge);
+  padding: 10px;
+  border-radius: 18px;
   overflow: hidden;
-  background: var(--paper-warm);
-  border: 1px solid var(--paper-edge);
+  background:
+    var(--fibre),
+    linear-gradient(to bottom, #55402e, #3b2c20);
+  border: 1px solid #2b2018;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 0 30px rgba(0,0,0,.45),
+    var(--lift-2);
+}
+
+.apple-music-embed iframe {
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
 }
 
 /* ---------- scrollbars ---------- */
@@ -785,7 +878,8 @@ body.locked .keeper-badge {
 
   .notebook-content-area { padding: 22px 16px; font-size: 17px; }
   .scroll-content { font-size: 18px; }
-  .vinyl-container { width: 128px; height: 128px; }
+  .vinyl-container { width: 150px; height: 150px; }
+  .vinyl-center { width: 62px; height: 62px; font-size: 11px; }
 }
 
 @media (max-width: 380px) {
@@ -810,7 +904,7 @@ body.locked .keeper-badge {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
-  .vinyl-container { animation: none; }
+  .vinyl-center { animation: none; }
 }
 
 /* ============================================================
