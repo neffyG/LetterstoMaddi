@@ -2,6 +2,10 @@
    push.js — notifications.
    She subscribes once. He taps the horn. She gets a nudge.
 
+   The device is saved through the send-ping edge function, not
+   written to the table directly, so row-level security never
+   stands in the way and no visitor can touch the table.
+
    Additive: if anything here fails, the site carries on exactly
    as before and the horn falls back to opening a text message.
    ============================================================ */
@@ -11,6 +15,10 @@
 
   var SUPPORTED = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   var reg = null;
+
+  function fnUrl() {
+    return (typeof SUPABASE_URL !== "undefined" ? SUPABASE_URL : "") + "/functions/v1/send-ping";
+  }
 
   /* iOS only allows web push when the site has been added to the
      Home Screen. Detect that so we can explain rather than fail. */
@@ -142,24 +150,32 @@
       })
       .then(function (sub) {
         stage = "save";
-        if (!window.db) throw new Error("no database connection");
         var j = sub.toJSON();
         if (!j.keys || !j.keys.p256dh || !j.keys.auth) throw new Error("subscription had no keys");
-        return window.db.from("push_subs").upsert({
-          endpoint: sub.endpoint,
-          p256dh: j.keys.p256dh,
-          auth: j.keys.auth,
-          label: isIOS() ? "iPhone" : "browser"
-        }, { onConflict: "endpoint" });
+
+        /* Saved server-side with the service role. The browser
+           never writes to the table, so RLS is not involved.   */
+        return fetch(fnUrl(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "subscribe",
+            label: isIOS() ? "iPhone" : "browser",
+            subscription: { endpoint: sub.endpoint, keys: j.keys }
+          })
+        }).then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            if (!res.ok) throw new Error(body.error || ("HTTP " + res.status));
+            return body;
+          });
+        });
       })
-      .then(function (res) {
-        if (res && res.error) throw new Error(res.error.message || JSON.stringify(res.error));
+      .then(function () {
         if (announce) say("She'll feel it now.");
       })
       .catch(function (e) {
         var msg = (e && e.message) ? e.message : String(e);
         console.warn("push " + stage + " failed:", e);
-        // name the real reason; a vague message helps nobody
         if (announce) say(stage + ": " + msg, true);
       });
   }
@@ -181,7 +197,7 @@
       var token = r && r.data && r.data.session && r.data.session.access_token;
       if (!token) { say("Open the gate first", true); return; }
 
-      return fetch(SUPABASE_URL + "/functions/v1/send-ping", {
+      return fetch(fnUrl(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -207,8 +223,7 @@
     if (typeof window.whisper === "function") window.whisper(msg, !!bad);
   }
 
-  /* ---------- diagnosis you can read on the phone ----------
-     Tap the acorn area, or run pushStatus() from a console.   */
+  /* ---------- diagnosis you can read on the phone ---------- */
 
   function pushStatus() {
     var lines = [
@@ -216,8 +231,7 @@
       "iOS: " + isIOS(),
       "installed: " + isInstalled(),
       "permission: " + (window.Notification ? Notification.permission : "n/a"),
-      "vapid: " + (typeof VAPID_PUBLIC_KEY !== "undefined" ? VAPID_PUBLIC_KEY.length + " chars" : "MISSING"),
-      "db object: " + (!!window.db)
+      "vapid: " + (typeof VAPID_PUBLIC_KEY !== "undefined" ? VAPID_PUBLIC_KEY.length + " chars" : "MISSING")
     ];
 
     if (!SUPPORTED) return alert(lines.join("\n"));
@@ -235,7 +249,7 @@
     });
   }
 
-  /* triple-tap the ping horn to see the diagnosis */
+  /* triple-tap the horn for the diagnosis; long-press to retry */
   var taps = 0, tapTimer = null;
   document.addEventListener("DOMContentLoaded", function () {
     var horn = document.querySelector(".blowhorn-icon");
